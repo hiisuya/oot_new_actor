@@ -11,7 +11,9 @@ This is viable with both standard `/assets` management, and the custom `/mod_ass
 ```
 
 `-name`: any alphanumeric characters as well as `_`. If you use `-` it will be replaced with `_`
+
 `--noobject`: will skip creating anything related to the `Object`. Useful for actors that will use another actor's `Object` file
+
 `--modassets`: use this if you are using the custom `/mod_assets` asset management style
 
 Examples:
