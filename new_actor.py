@@ -230,6 +230,12 @@ if __name__ == "__main__":
     parser.add_argument("--noobject", required = False, help = "Optional. Use if you do not want to create an object for this actor", action='store_false')
     args = parser.parse_args()
 
+    if not os.path.exists(Path(path.curdir, "src") or not os.path.exists(Path(path.curdir, "spec"))):
+        sys.exit("new_actor.py does not seem to be in the repo root directory.\nPut this file, and the template_files folder into the root (where the src and assets/mod_assets folders are located)!")
+    else:
+        if not os.path.exists(Path(path.curdir, "template_files")):
+            sys.exit("template_files folder not found.\nMake sure the new_actor.py file and template_files folder are in your repo root folder!")
+
     if args.noobject == False:
         createObject = args.noobject
 
