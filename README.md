@@ -19,7 +19,7 @@ python3 new_actor.py -name en_new_actor
 python3 new_actor.py -name en_new_actor --noobject
 ```
 
-## To Use
+## How To Use
 - Download the most recent file from Releases
 
 - Unzip and place all files in the main folder of your Repository
