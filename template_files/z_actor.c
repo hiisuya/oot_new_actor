@@ -6,7 +6,7 @@
 
 #include "{actorFileName}.h"
 
-#define FLAGS ()
+#define FLAGS (ACTOR_FLAG_0)
 
 void {actorSpec}_Init(Actor* thisx, PlayState* play);
 void {actorSpec}_Destroy(Actor* thisx, PlayState* play);
@@ -40,7 +40,7 @@ void {actorSpec}_Destroy(Actor* thisx, PlayState* play) {
 void {actorSpec}_Update(Actor* thisx, PlayState* play) {
     {actorSpec}* this = ({actorSpec}*)thisx;
 
-    this->actionFunc(this, play)
+    this->actionFunc(this, play);
 }
 
 void {actorSpec}_Draw(Actor* thisx, PlayState* play) {

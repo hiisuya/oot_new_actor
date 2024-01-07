@@ -1,27 +1,17 @@
 import os
-from os import path
-import sys
-from pprint import pprint 
-import shutil
 import re
+import sys
+import shutil
 import argparse
+import textwrap
+from os import path
+from pathlib import Path
 
 createObject = True
 useModAssets = False
 
 def convertActorName(name: str):
-    actorSpec = name.capitalize()
-    toCap = []
-
-    for pos, char in enumerate(actorSpec):
-        if char == "_":
-            toCap.append(pos + 1)
-
-    temp = list(actorSpec)
-    for i in toCap:
-        temp[i] = actorSpec[i].upper()
-
-    actorSpec = ''.join(temp)
+    actorSpec = "_".join(it[0].upper() + it[1:] for it in name.split("_"))
     actorDefine = "ACTOR_" + actorSpec.upper()
     objectSpec = "object" + "_" + name.lower()
     objectDefine = objectSpec.upper()
@@ -37,8 +27,8 @@ def convertActorName(name: str):
 
 # check if folders exists, if not, create them and necessary files
 def makeFilesAndFolders(folderName, fileName, objectName):
-    filePathActor = str(path.curdir) + "/src/overlays/actors/ovl_" + folderName
-    filePathObject = str(path.curdir) + ("/mod_assets" if useModAssets else "/assets") + "/objects/" + objectName
+    filePathActor = Path(path.curdir, "src/overlays/actors", f"ovl_{folderName}")
+    filePathObject = Path(path.curdir, ("mod_assets/objects" if useModAssets else "assets/objects"), f"{objectName}")
 
     filePaths = [filePathActor, filePathObject]
     
@@ -49,25 +39,23 @@ def makeFilesAndFolders(folderName, fileName, objectName):
         if filePath == filePathObject and not createObject:
             break
         os.mkdir(filePath)
-        with open(filePath + "/" + (fileName if filePath == filePathActor else objectName) + ".c", "w") as file:
+        with open(Path(filePath, f'{(fileName if filePath == filePathActor else objectName)}.c'), "w") as file:
             file.write("'this is a c file... hopefully!'")
 
-        with open(filePath + "/" + (fileName if filePath == filePathActor else objectName) + ".h", "w") as file:
+        with open(Path(filePath, f'{(fileName if filePath == filePathActor else objectName)}.h'), "w") as file:
             file.write("'and this is an h file... hopefully!'")
 
 def isInFile(text, filePath):
-    file = [line.rstrip('\n') for line in open(filePath)]
-    line_num = 0
-    for line in file:
-        line_num += 1
-        if text in line:
-            return True, line_num
-    return False, 0
+    with open(filePath) as fd:
+        for line_num, line in enumerate(fd.readlines()):
+            if text in line:
+                return line_num
+    return None
 
 # write actor define after last entry, not at end of file
-def addToActorTable(actorSpec, actorDefine, objectSpec, objectDefine):
-    filePathActor = str(path.curdir) + "/include/tables/actor_table.h"
-    filePathObject = str(path.curdir) + "/include/tables/object_table.h"
+def addToTables(actorSpec, actorDefine, objectSpec, objectDefine):
+    filePathActor = Path(path.curdir, "include/tables/actor_table.h")
+    filePathObject = Path(path.curdir, "include/tables/object_table.h")
     filePaths = [filePathActor, filePathObject]
 
     actorLineNum = 0
@@ -76,9 +64,9 @@ def addToActorTable(actorSpec, actorDefine, objectSpec, objectDefine):
 
         inFileActor = isInFile(actorSpec, filePathActor)
         inFileObject = isInFile(objectSpec, filePathObject)
-        if inFileActor[0] or inFileObject[0]:
-            if inFileActor[0]: print(f"Actor Define already exists! {actorDefine} was found on line {inFileActor[1]}")
-            if inFileObject[0]: print(f"Object Define already exists! {objectDefine} was found on line {inFileObject[1]}")
+        if inFileActor or inFileObject:
+            if inFileActor: print(f"Actor Define already exists! {actorDefine} was found on line {inFileActor}")
+            if inFileObject: print(f"Object Define already exists! {objectDefine} was found on line {inFileObject}")
             sys.exit()
 
         for filePath in filePaths:
@@ -130,8 +118,8 @@ def addToActorTable(actorSpec, actorDefine, objectSpec, objectDefine):
 def addToSpec(actorSpec, actorFileName, objectSpec, actorFileLine):
     # read tables and get actor located specifically before the most recently added one
     # use that to determine where in the spec file to write
-    filePathActor = str(path.curdir) + "/include/tables/actor_table.h"
-    filePathSpec = str(path.curdir) + "/spec"
+    filePathActor = Path(path.curdir, "include/tables/actor_table.h")
+    filePathSpec = Path(path.curdir, "spec")
 
     with open(filePathActor, "r") as file:
         file_data = file.readlines()
@@ -141,54 +129,56 @@ def addToSpec(actorSpec, actorFileName, objectSpec, actorFileLine):
     with open(filePathSpec, "r") as file:
         file_data = file.readlines()
         inFile = isInFile('name "gameplay_keep"', filePathSpec)
-        if inFile[0]:
-            startLineActor = inFile[1]
+        if inFile:
+            startLineActor = inFile
         
         if createObject:
             inFile = isInFile('name "g_pn_01"', filePathSpec)
-            if inFile[0]:
-                startLineObject = inFile[1]
+            if inFile:
+                startLineObject = inFile
 
     with open(filePathSpec, "w") as file:
 
         if createObject:
-            file_data[startLineObject - 3] = f"""
-beginseg
-    name "{objectSpec}"
-    romalign 0x1000
-    include "build/assets/objects/{objectSpec}/{objectSpec}.o"
-    number 6
-endseg
+            file_data[startLineObject - 2] =  textwrap.dedent(
+                f"""
+                beginseg
+                    name "{objectSpec}"
+                    romalign 0x1000
+                    include "build/assets/objects/{objectSpec}/{objectSpec}.o"
+                    number 6
+                endseg
+
+                """)
         
-"""
-        
-        file_data[startLineActor - 3] = f"""
-beginseg
-    name "ovl_{actorSpec}"
-    include "build/src/overlays/actors/ovl_{actorSpec}/{actorFileName}.o"
-    include "build/src/overlays/actors/ovl_{actorSpec}/ovl_{actorSpec}_reloc.o"
-endseg
-        
-"""
+        file_data[startLineActor - 2] =  textwrap.dedent(
+            f"""
+            beginseg
+                name "ovl_{actorSpec}"
+                include "build/src/overlays/actors/ovl_{actorSpec}/{actorFileName}.o"
+                include "build/src/overlays/actors/ovl_{actorSpec}/ovl_{actorSpec}_reloc.o"
+            endseg
+            
+            """)
 
         file.seek(0)
         for line in file_data:
             file.write(line)
 
 def completeFiles(actorSpec, actorDefine, actorFileName, objectSpec, objectDefine):
-    filePathActor = str(path.curdir) + "/src/overlays/actors/ovl_" + actorSpec
-    filePathObject = str(path.curdir) + ("/mod_assets" if useModAssets else "/assets") + "/objects/" + objectSpec
+    filePathActor = Path(path.curdir, "src/overlays/actors", f"ovl_{actorSpec}")
+    filePathObject = Path(path.curdir, f"{('mod_assets' if useModAssets else 'assets')}/objects", f"{objectSpec}")
 
     # ACTOR
-    shutil.copyfile(str(path.curdir) + "/template_files/z_actor.c", f"{filePathActor}/{actorFileName}.c")
-    shutil.copyfile(str(path.curdir) + "/template_files/z_actor.h", f"{filePathActor}/{actorFileName}.h")
+    shutil.copyfile(Path(path.curdir, "template_files/z_actor.c"), f"{filePathActor}/{actorFileName}.c")
+    shutil.copyfile(Path(path.curdir, "template_files/z_actor.h"), f"{filePathActor}/{actorFileName}.h")
 
     with open(f"{filePathActor}/{actorFileName}.c", 'r') as file:
         dataC = file.read()
         dataC = dataC.replace("{actorSpec}", actorSpec)
-        dataC = dataC.replace("{actorDefine}", actorDefine) 
+        dataC = dataC.replace("{actorDefine}", actorDefine)
         dataC = dataC.replace("{actorFileName}", actorFileName)
-        dataC = dataC.replace("{objectDefine}", objectDefine) 
+        dataC = dataC.replace("{objectDefine}", objectDefine if createObject else "OBJECT_GAMEPLAY_KEEP") 
     
     with open(f"{filePathActor}/{actorFileName}.c", 'w') as file: 
         file.write(dataC) 
@@ -197,15 +187,15 @@ def completeFiles(actorSpec, actorDefine, actorFileName, objectSpec, objectDefin
         dataH = file.read()
         dataH = dataH.replace("{actorSpec}", actorSpec)
         dataH = dataH.replace("{actorFileNameCaps}", actorFileName.upper())
-        dataH = dataH.replace("{objectSpec}", objectSpec)  
+        dataH = dataH.replace("{includeObject}", f'\n#include "assets/objects/{objectSpec}/{objectSpec}.h"' if createObject else "")
     
     with open(f"{filePathActor}/{actorFileName}.h", 'w') as file: 
         file.write(dataH) 
 
     if createObject:
         # OBJECT
-        shutil.copyfile(str(path.curdir) + "/template_files/object.c", f"{filePathObject}/{objectSpec}.c")
-        shutil.copyfile(str(path.curdir) + "/template_files/object.h", f"{filePathObject}/{objectSpec}.h")
+        shutil.copyfile(Path(path.curdir, "template_files/object.c"), f"{filePathObject}/{objectSpec}.c")
+        shutil.copyfile(Path(path.curdir, "template_files/object.h"), f"{filePathObject}/{objectSpec}.h")
 
         with open(f"{filePathObject}/{objectSpec}.c", 'r') as file:
             dataC = file.read()
@@ -228,7 +218,7 @@ def main():
     print(f'Creating new Actor: {names["actorSpec"]}')
 
     makeFilesAndFolders(names["actorSpec"], names["actorFileName"], names["objectSpec"])
-    actorFileLine = addToActorTable(names["actorSpec"], names["actorDefine"], names["objectSpec"], names["objectDefine"])
+    actorFileLine = addToTables(names["actorSpec"], names["actorDefine"], names["objectSpec"], names["objectDefine"])
     addToSpec(names["actorSpec"], names["actorFileName"], names["objectSpec"], actorFileLine)
     completeFiles(names["actorSpec"], names["actorDefine"], names["actorFileName"], names["objectSpec"], names["objectDefine"])
 
@@ -238,17 +228,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-name", required = True, help = "Name of actor. Use alphanumeric and/or _ as valid characters", default = "")
     parser.add_argument("--noobject", required = False, help = "Optional. Use if you do not want to create an object for this actor", action='store_false')
-    parser.add_argument("--modassets", required = False, help = "Optional. Use if you are using the mod_assets management system", action='store_true')
     args = parser.parse_args()
 
     if args.noobject == False:
         createObject = args.noobject
 
-    if args.modassets == True:
-        if os.path.exists(str(os.curdir) + "/mod_assets/objects"):
-            useModAssets = True
-        else:
-            sys.exit("Cannot use mod_assets without object folder. Please make sure you are set up correctly!")
+    if os.path.exists(Path(path.curdir, "mod_assets/objects")):
+        useModAssets = True
 
     if re.match(r'^[A-Za-z0-9_-]+$', args.name):
         actorName = args.name.replace("-", "_")
