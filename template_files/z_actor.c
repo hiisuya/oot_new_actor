@@ -6,7 +6,7 @@
 
 #include "{actorFileName}.h"
 
-#define FLAGS (ACTOR_FLAG_4 | ACTOR_FLAG_5)
+#define FLAGS (0)
 
 void {actorSpec}_Init(Actor* thisx, PlayState* play);
 void {actorSpec}_Destroy(Actor* thisx, PlayState* play);
