@@ -121,6 +121,8 @@ def addToSpec(actorSpec, actorFileName, objectSpec, actorFileLine):
     filePathActor = Path(path.curdir, "include/tables/actor_table.h")
     filePathSpec = Path(path.curdir, "spec")
 
+    useNewBuild = False
+
     with open(filePathActor, "r") as file:
         file_data = file.readlines()
         prevActor = file_data[actorFileLine - 2]
@@ -136,6 +138,8 @@ def addToSpec(actorSpec, actorFileName, objectSpec, actorFileLine):
             inFile = isInFile('name "g_pn_01"', filePathSpec)
             if inFile:
                 startLineObject = inFile
+        
+        useNewBuild = isInFile('name "$(BUILD_DIR)/"', filePathSpec)
 
     with open(filePathSpec, "w") as file:
 
@@ -145,7 +149,7 @@ def addToSpec(actorSpec, actorFileName, objectSpec, actorFileLine):
                 beginseg
                     name "{objectSpec}"
                     romalign 0x1000
-                    include "build/assets/objects/{objectSpec}/{objectSpec}.o"
+                    include "{"$(BUILD_DIR)" if useNewBuild else "build"}/assets/objects/{objectSpec}/{objectSpec}.o"
                     number 6
                 endseg
 
@@ -155,8 +159,8 @@ def addToSpec(actorSpec, actorFileName, objectSpec, actorFileLine):
             f"""
             beginseg
                 name "ovl_{actorSpec}"
-                include "build/src/overlays/actors/ovl_{actorSpec}/{actorFileName}.o"
-                include "build/src/overlays/actors/ovl_{actorSpec}/ovl_{actorSpec}_reloc.o"
+                include "{"$(BUILD_DIR)" if useNewBuild else "build"}/src/overlays/actors/ovl_{actorSpec}/{actorFileName}.o"
+                include "{"$(BUILD_DIR)" if useNewBuild else "build"}/src/overlays/actors/ovl_{actorSpec}/ovl_{actorSpec}_reloc.o"
             endseg
             
             """)
