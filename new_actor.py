@@ -139,7 +139,7 @@ def addToSpec(actorSpec, actorFileName, objectSpec, actorFileLine):
             if inFile:
                 startLineObject = inFile
         
-        useNewBuild = isInFile('name "$(BUILD_DIR)/"', filePathSpec)
+        useNewBuild = isInFile('$(BUILD_DIR)/', filePathSpec)
 
     with open(filePathSpec, "w") as file:
 
