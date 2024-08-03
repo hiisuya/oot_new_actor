@@ -15,7 +15,7 @@ void {actorSpec}_Draw(Actor* thisx, PlayState* play);
 
 void {actorSpec}_DoNothing({actorSpec}* this, PlayState* play);
 
-ActorInit {actorSpec}_InitVars = {
+{actorVar} {actorSpec}_{actorInitVar} = {
     {actorDefine},
     ACTORCAT_PROP,
     FLAGS,

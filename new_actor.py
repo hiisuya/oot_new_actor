@@ -9,6 +9,7 @@ from pathlib import Path
 
 createObject = True
 useModAssets = False
+useActorProfile = False
 
 def convertActorName(name: str):
     actorSpec = "_".join(it[0].upper() + it[1:] for it in name.split("_"))
@@ -183,6 +184,8 @@ def completeFiles(actorSpec, actorDefine, actorFileName, objectSpec, objectDefin
         dataC = dataC.replace("{actorDefine}", actorDefine)
         dataC = dataC.replace("{actorFileName}", actorFileName)
         dataC = dataC.replace("{objectDefine}", objectDefine if createObject else "OBJECT_GAMEPLAY_KEEP") 
+        dataC = dataC.replace("{actorVar}", "ActorProfile" if useActorProfile else "ActorInit")
+        dataC = dataC.replace("{actorInitVar}", "Profile" if useActorProfile else "InitVars")
     
     with open(f"{filePathActor}/{actorFileName}.c", 'w') as file: 
         file.write(dataC) 
@@ -215,7 +218,7 @@ def completeFiles(actorSpec, actorDefine, actorFileName, objectSpec, objectDefin
         
         with open(f"{filePathObject}/{objectSpec}.h", 'w') as file: 
             file.write(dataH) 
-            
+          
 def main():
     names = convertActorName(actorName)
 
@@ -246,6 +249,12 @@ if __name__ == "__main__":
     if os.path.exists(Path(path.curdir, "mod_assets/objects")):
         useModAssets = True
 
+    if not os.path.exists(Path(path.curdir, "assets/objects")) and createObject:
+        os.makedirs(Path(path.curdir, "assets/objects"))
+
+    if isInFile('ActorProfile', "include/z64actor.h"):
+        useActorProfile = True
+        
     if re.match(r'^[A-Za-z0-9_-]+$', args.name):
         actorName = args.name.replace("-", "_")
         main()     
