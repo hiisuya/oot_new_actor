@@ -3,6 +3,8 @@ This script automatically creates a new actor for any ZeldaRet Ocarina of Time r
 
 This is viable with both standard assets management, and the custom mod_assets management systems
 
+As of July 2025, the most recent versions of this script will not work with Ocarina of Time repositories from before then due to the headers splits. If your repository has split headers, use the most recent version. If not, the latest version that will work for you is [v1.2](https://github.com/hiisuya/oot_new_actor/releases/tag/v1.2).
+
 ```
 -name NAME
 --noobject
